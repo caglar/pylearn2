@@ -258,3 +258,45 @@ class AdaDelta(LearningRule):
 
         return updates
 
+class GradientClipper(LearningRule):
+    """
+    Implements the gradient clipping based on the norm.
+
+    Parameters
+    ----------
+    threshold : float
+        Threshold to clip the gradient.
+    """
+
+    def __init__(self, threshold):
+        assert threshold is not None and threshold > 0.0
+        self.threshold = threshold
+
+    def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        # TODO: add norm of the gradient monitor!!!
+        return
+
+    def get_clipped_gradient(self, learning_rate, grads, lr_scalers=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        norm_grads = T.sqrt(sum(T.sum(g**2) for g in grads))
+        notfinite = T.or_(T.isnan(norm_grads), T.isinf(norm_grads))
+
+        for param in grads.keys():
+            grad = grads[param]
+            clipped_g = T.switch(T.ge(norm_grads, self.threshold),
+                                  grad * self.threshold / norm_grads, grad)
+
+            grads[param] = T.switch(notfinite, np.cast[config.floatX](.1) * param,
+                                     clipped_g)
+
+        return grads
+
